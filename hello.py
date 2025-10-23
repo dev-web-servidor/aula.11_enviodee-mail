@@ -10,6 +10,7 @@ from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail, Message
+
 import requests
 from datetime import datetime
 
@@ -54,6 +55,15 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
+class Email(db.Model):
+    __tablename__ = 'emails'
+    id = db.Column(db.Integer, primary_key=True)
+    remetente = db.Column(db.String(320), index=True)
+    destinatario = db.Column(db.String(320), index=True)
+    assunto = db.Column(db.String(70), index=True)
+    corpo = db.Column(db.String(320), index=True)
+    data = db.Column(db.String(21), index=True)
+
 def send_simple_message(to, subject, newUser):
     print('Enviando mensagem (POST)...', flush=True)
     print('URL: ' + str(app.config['API_URL']), flush=True)
@@ -61,15 +71,17 @@ def send_simple_message(to, subject, newUser):
     print('from: ' + str(app.config['API_FROM']), flush=True)
     print('to: ' + str(to), flush=True)
     print('subject: ' + str(app.config['FLASKY_MAIL_SUBJECT_PREFIX']) + ' ' + subject, flush=True)
-    print('text: ' + "Prontuário: PT3025993\nNome:Lais Gabriele Da silva\nNovo usuário cadastrado: " + newUser, flush=True)
+    print('text: ' + "Prontuário: PT3025993\nNome: Lais Gabriele Da Silva\nNovo usuário cadastrado: " + newUser, flush=True)
 
-    resposta = requests.post(app.config['API_URL'],
-                             auth=("api", app.config['API_KEY']), data={"from": app.config['API_FROM'],
-                                                                        "to": to,
-                                                                        "subject": app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + ' ' + subject,
-                                                                        "text": "Prontuário:PT3025993\nNome: Lais Gabriele Da Silva\nNovo usuário cadastrado: " + newUser})
-
+    resposta = requests.post(app.config['API_URL'], 
+                             auth=("api", app.config['API_KEY']), data={"from": app.config['API_FROM'], 
+                                                                        "to": to, 
+                                                                        "subject": app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + ' ' + subject, 
+                                                                        "text": "Prontuário: PT3025993\nNome: Lais Gabriele Da Silva\nNovo usuário cadastrado: " + newUser})
     print('Enviando mensagem (Resposta)...' + str(resposta) + ' - ' + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), flush=True)
+    email = Email(remetente = newUser, destinatario = str(to), assunto = str(app.config['FLASKY_MAIL_SUBJECT_PREFIX']) + ' ' + subject, corpo = "Prontuário: PT303304X\nNome: Giovanna Karolline Menezes Ribeiro\nNovo usuário cadastrado: " + newUser, data = datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+    db.session.add(email)
+    db.session.commit()
     return resposta
 
 
@@ -92,6 +104,10 @@ def page_not_found(e):
 def internal_server_error(e):
     return render_template('500.html'), 500
 
+@app.route('/enviaremail')
+def enviaremail():
+    emails = Email.query.all()
+    return render_template('enviaremail.html', emails = emails)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -104,7 +120,7 @@ def index():
             db.session.add(user)
             db.session.commit()
             session['known'] = False
-
+            
             print('Verificando variáveis de ambiente: Server log do PythonAnyWhere', flush=True)
             print('FLASKY_ADMIN: ' + str(app.config['FLASKY_ADMIN']), flush=True)
             print('URL: ' + str(app.config['API_URL']), flush=True)
@@ -112,9 +128,9 @@ def index():
             print('from: ' + str(app.config['API_FROM']), flush=True)
             print('to: ' + str([app.config['FLASKY_ADMIN'], "flaskaulasweb@zohomail.com"]), flush=True)
             print('subject: ' + str(app.config['FLASKY_MAIL_SUBJECT_PREFIX']), flush=True)
-            print('text: ' + "Prontuário:PT3025993\nNome: Lais Gabriele Da Silva\nNovo usuário cadastrado: " + form.name.data, flush=True)
+            print('text: ' + "Prontuário: PT3025993\nNome: Lais Gabriele Da Silva\nNovo usuário cadastrado: " + form.name.data, flush=True)
 
-            if app.config['FLASKY_ADMIN'] and mandarEmail:
+            if app.config['FLASKY_ADMIN'] and mandarEmail:                
                 print('Enviando mensagem...', flush=True)
                 send_simple_message([app.config['FLASKY_ADMIN'], "flaskaulasweb@zohomail.com"], 'Novo usuário', form.name.data)
                 print('Mensagem enviada...', flush=True)
