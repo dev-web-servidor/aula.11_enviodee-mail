@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+<style>
+    .scroll {
+      overflow-y: auto;
+    }
+</style>
+
+{% block page_content %}
+<div class='scroll'>
+    <div class="page-header">
+        <h1>E-mails enviados</h1>
+        <p>Relação de e-mails enviados para o administrador do sistema, notificando o cadastro de novos usuários.</p>
+    
+        <table class='table'>
+            <thead>
+                <tr>
+                    <th>De</th>
+                    <th>Para</th>
+                    <th>Assunto</th>
+                    <th>Texto</th>
+                    <th>Data/Hora</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in emails %}
+                    <tr>
+                        <td>{{ i.remetente }}</td>
+                        <td>{{ i.destinatario | replace('[', '') | replace(']', '') }}</td>
+                        <td>{{ i.assunto }}</td>
+                        <td>{{ i.corpo | replace('\n', '<br>') | safe }}</td>
+                        <td>{{ i.data | replace(',', '') | safe }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+</div>
